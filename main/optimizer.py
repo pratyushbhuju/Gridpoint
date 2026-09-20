@@ -48,7 +48,7 @@ def optimize(neighborhoods, k, delivery_cost, fuel_cost, transport_mode, max_rad
     warehouses = points[indices].copy()
 
     learning_rate = 0.00001
-    epochs = 10000
+    epochs = 10001
 
     for epoch in range(epochs):
 

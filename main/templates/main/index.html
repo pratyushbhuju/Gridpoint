@@ -14,6 +14,24 @@
             margin: 0;
             background: #f4f6f8;
         }
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 8%;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        nav a {
+            text-decoration: none;
+            color: #374151;
+            font-weight: bold;
+        }
         .navbar {
             background: white;
             padding: 15px 30px;
@@ -100,13 +118,10 @@
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <a href="/" class="logo">GRIDPOINT</a>
-        <div class="nav-links">
-            <a href="/">Home</a>
-            <a href="/warehouse/">Warehouse Tool</a>
-        </div>
-    </div>
+    <nav>
+        <div class="logo">GRIDPOINT</div>
+        <a href="/warehouse/">Warehouse Optimizer</a>
+    </nav>
     <div class="container">
     
         <h1>GRIDPOINT</h1>
@@ -184,7 +199,11 @@
             const row = document.createElement("div");
     
             row.className = "input-row neighborhood";
-    
+            document.addEventListener("wheel", function(e) {
+                if (document.activeElement.type === "number") {
+                    e.preventDefault();
+                }
+            }, { passive: false });
             row.innerHTML = `
                 <input type="text" name="name" placeholder="Neighborhood name" class="name" value="${name}" required>
                 <input type="number" step="any" name="latitude" placeholder="Latitude" class="lat" value="${lat}" required>
