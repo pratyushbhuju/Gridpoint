@@ -138,16 +138,19 @@ def optimize(neighborhoods, k, delivery_cost, fuel_cost, transport_mode, max_rad
             "distance": min_distance
         })
 
-    if not valid:
-
-        return {
-            "cost": float("inf"),
-            "warehouses": best_warehouses,
-            "assignments": None
-        }
+    if valid:
+        message = "A valid solution was found within the given service radius."
+    else:
+        message = (
+            "According to the given warehouse and service radius conditions, "
+            "a solution is not possible. If the service radius condition is "
+            "disregarded, this is the best warehouse arrangement found."
+        )
 
     return {
         "cost": best_cost,
         "warehouses": best_warehouses,
-        "assignments": best_assignments
+        "assignments": best_assignments,
+        "valid": valid,
+        "message": message
     }
