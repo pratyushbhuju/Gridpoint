@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>GRIDPOINT - Input</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f4f6f8;
+        }
+        .navbar {
+            background: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 30px auto;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        input, select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        input {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .add-btn {
+            background: #198754;
+            color: white;
+        }
+
+        .remove-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .submit-btn {
+            background: #0d6efd;
+            color: white;
+            width: 100%;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        #map {
+            height: 450px;
+            border-radius: 8px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .setting {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="/" class="logo">GRIDPOINT</a>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/warehouse/">Warehouse Tool</a>
+        </div>
+    </div>
+    <div class="container">
+    
+        <h1>GRIDPOINT</h1>
+    
+        <form method="POST" action="">
+            {% csrf_token %}
+    
+            <div class="card">
+                <h2>Neighborhood Information</h2>
+                <p>Enter the location and daily orders for each neighborhood.</p>
+    
+                <div id="neighborhoods"></div>
+    
+                <button type="button" class="add-btn" onclick="addNeighborhood()">+ Add Neighborhood</button>
+            </div>
+    
+            <div class="card">
+                <h2>Neighborhood Map</h2>
+                <p>You can also click on the map to select a location.</p>
+                <div id="map"></div>
+            </div>
+    
+            <div class="card">
+                <h2>Optimization Settings</h2>
+    
+                <div class="setting">
+                    <label for="warehouses">Number of Warehouses</label>
+                    <input type="number" id="warehouses" name="number_of_warehouses" min="1" value="1" required>
+                </div>
+    
+                <div class="setting">
+                    <label for="deliveryCost">Delivery Cost per Kilometer</label>
+                    <input type="number" id="deliveryCost" name="delivery_cost_per_km" min="0" step="0.01" placeholder="Example: 10" required>
+                </div>
+    
+                <div class="setting">
+                    <label for="fuelCost">Fuel Cost per Kilometer</label>
+                    <input type="number" id="fuelCost" name="fuel_cost_per_km" min="0" step="0.01" placeholder="Example: 5" required>
+                </div>
+    
+                <div class="setting">
+                    <label for="transport">Mode of Transportation</label>
+                    <select id="transport" name="transportation_mode" required>
+                        <option value="">Select transportation</option>
+                        <option value="bike">Bike</option>
+                        <option value="car">Car</option>
+                        <option value="van">Van</option>
+                        <option value="truck">Truck</option>
+                    </select>
+                </div>
+    
+                <div class="setting">
+                    <label for="radius">Maximum Service Radius (km)</label>
+                    <input type="number" id="radius" name="maximum_service_radius" min="0" step="0.1" placeholder="Example: 20" required>
+                </div>
+    
+                <button type="submit" class="submit-btn">Optimize</button>
+            </div>
+    
+        </form>
+    </div>
+    {{ neighborhoods|json_script:"saved-neighborhoods" }}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([12.9716, 77.5946], 11);
+    
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        }).addTo(map);
+    
+        let markers = [];
+    
+        function addNeighborhood(name = "", lat = "", lon = "", orders = "") {
+            const container = document.getElementById("neighborhoods");
+            const row = document.createElement("div");
+    
+            row.className = "input-row neighborhood";
+    
+            row.innerHTML = `
+                <input type="text" name="name" placeholder="Neighborhood name" class="name" value="${name}" required>
+                <input type="number" step="any" name="latitude" placeholder="Latitude" class="lat" value="${lat}" required>
+                <input type="number" step="any" name="longitude" placeholder="Longitude" class="lon" value="${lon}" required>
+                <input type="number" min="0" name="daily_orders" placeholder="Daily orders" class="orders" value="${orders}" required>
+                <button type="button" class="remove-btn" onclick="removeNeighborhood(this)">Remove</button>
+            `;
+    
+            container.appendChild(row);
+    
+            row.querySelectorAll("input").forEach(input => {
+                input.addEventListener("input", updateMap);
+            });
+    
+            updateMap();
+        }
+    
+        function removeNeighborhood(button) {
+            button.parentElement.remove();
+            updateMap();
+        }
+    
+        function updateMap() {
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+    
+            const rows = document.querySelectorAll(".neighborhood");
+    
+            rows.forEach(row => {
+                const name = row.querySelector(".name").value;
+                const lat = parseFloat(row.querySelector(".lat").value);
+                const lon = parseFloat(row.querySelector(".lon").value);
+                const orders = row.querySelector(".orders").value;
+    
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    const marker = L.marker([lat, lon]).addTo(map);
+    
+                    marker.bindTooltip(name || "Neighborhood", {
+                        permanent: true,
+                        direction: "top",
+                        offset: [0, -10]
+                    });
+    
+                    marker.bindPopup(`
+                        <b>${name || "Neighborhood"}</b><br>
+                        Daily Orders: ${orders || 0}
+                    `);
+    
+                    markers.push(marker);
+                }
+            });
+        }
+    
+        map.on("click", function(event) {
+            const lat = event.latlng.lat.toFixed(6);
+            const lon = event.latlng.lng.toFixed(6);
+    
+            const name = prompt("Neighborhood name:");
+            if (!name) return;
+    
+            const orders = prompt("Daily orders:");
+            if (orders === null || orders === "") return;
+    
+            addNeighborhood(name, lat, lon, orders);
+        });
+        const savedNeighborhoods = JSON.parse(document.getElementById("saved-neighborhoods").textContent);
+
+        savedNeighborhoods.forEach(n => {
+            addNeighborhood(n.name, n.latitude, n.longitude, n.orders);
+        });
+    </script>
+
+    </body>
+    </html>

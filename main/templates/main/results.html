@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GRIDPOINT - Results</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        .header {
+            background: #111827;
+            color: white;
+            padding: 22px 50px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .header p {
+            margin: 5px 0 0;
+            color: #aeb7c4;
+        }
+
+        .container {
+            max-width: 1250px;
+            margin: 35px auto;
+            padding: 0 25px;
+        }
+
+        .title {
+            margin-bottom: 25px;
+        }
+
+        .title h2 {
+            margin: 0;
+            font-size: 30px;
+        }
+
+        .title p {
+            color: #6b7280;
+            margin-top: 8px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .stat-card h4 {
+            margin: 0 0 10px;
+            color: #6b7280;
+            font-size: 14px;
+            font-weight: normal;
+        }
+
+        .stat-card strong {
+            font-size: 25px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .section h3 {
+            margin-top: 0;
+            margin-bottom: 18px;
+        }
+
+        .warehouse-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .warehouse {
+            border: 1px solid #e5e7eb;
+            border-radius: 9px;
+            padding: 15px;
+        }
+
+        .warehouse strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .warehouse span {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        #results-map {
+            height: 550px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f9fafb;
+            text-align: left;
+            font-size: 13px;
+            color: #6b7280;
+            padding: 13px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        td {
+            padding: 13px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .distance {
+            font-weight: bold;
+        }
+
+        .cost {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin-top: 5px;
+            padding: 11px 18px;
+            background: #111827;
+            color: white;
+            text-decoration: none;
+            border-radius: 7px;
+        }
+
+        .back-button:hover {
+            background: #374151;
+        }
+
+        @media (max-width: 800px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                padding: 20px 25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="header">
+    <h1>GRIDPOINT</h1>
+    <p>Warehouse Location Optimization</p>
+</div>
+
+<div class="container">
+
+{% if result.warehouses %}
+
+    <div class="title">
+        <h2>Optimization Results</h2>
+        <p>{{ result.message }}</p>
+    </div>
+
+    <div class="section">
+
+        <h3>Optimized Warehouse Locations</h3>
+
+        <div class="warehouse-list">
+
+            {% for warehouse in result.warehouses %}
+
+            <div class="warehouse">
+                <strong>🏭 {{ warehouse.name }}</strong>
+                <span>
+                    {{ warehouse.latitude|floatformat:5 }},
+                    {{ warehouse.longitude|floatformat:5 }}
+                </span>
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+
+    <div class="section">
+
+        <h3>Optimization Map</h3>
+
+        <div id="results-map"></div>
+
+    </div>
+
+
+    <div class="section">
+
+        <h3>Neighborhood Assignments</h3>
+
+        <div class="table-container">
+
+            <table>
+
+                <tr>
+                    <th>Neighborhood</th>
+                    <th>Assigned Warehouse</th>
+                    <th>Distance</th>
+                </tr>
+
+                {% for assignment in result.assignments %}
+
+                <tr>
+                    <td>{{ assignment.neighborhood }}</td>
+                    <td>🏭 {{ assignment.warehouse }}</td>
+                    <td class="distance">
+                        {{ assignment.distance|floatformat:2 }} km
+                    </td>
+                </tr>
+
+                {% endfor %}
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <div class="section">
+
+        <h3>Total Delivery Cost</h3>
+
+        <div class="cost">
+            {{ result.cost|floatformat:2 }}
+        </div>
+
+        <!-- transport_cost = min_distance * fuel_cost * fuel_factor
+        delivery_cost_total = min_distance * delivery_cost
+
+        total_cost += (transport_cost + delivery_cost_total) * neighborhood["orders"] -->
+
+        <p style="color:#6b7280;">Cost Function =  transportation cost × delivery cost × number of daily orders.</p>
+
+    </div>
+
+    <a href="/warehouse/" class="back-button">← Back to Optimization</a>
+
+
+    {{ result.warehouses|json_script:"warehouses-data" }}
+    {{ result.assignments|json_script:"assignments-data" }}
+
+
+{% else %}
+
+    <div class="title">
+        <h2>No Feasible Solution</h2>
+        <p>The optimizer could not find a valid warehouse configuration.</p>
+    </div>
+
+    <div class="section">
+
+        <h3>Why?</h3>
+
+        <p>No combination of warehouses can serve every neighborhood within the maximum service radius.</p>
+
+        <a href="index.html" class="back-button">← Adjust Parameters</a>
+
+    </div>
+
+{% endif %}
+
+</div>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+{% if result.warehouses %}
+
+<script>
+
+    const warehouses = JSON.parse(
+        document.getElementById("warehouses-data").textContent
+    );
+
+    const assignments = JSON.parse(
+        document.getElementById("assignments-data").textContent
+    );
+
+
+    const map = L.map("results-map").setView(
+        [12.9716, 77.5946],
+        11
+    );
+
+
+    L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+        {
+            attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
+        }
+    ).addTo(map);
+
+
+    warehouses.forEach(warehouse => {
+
+        const marker = L.marker([
+            warehouse.latitude,
+            warehouse.longitude
+        ]).addTo(map);
+
+        marker.bindTooltip(
+            "🏭 " + warehouse.name,
+            {
+                permanent: true,
+                direction: "top",
+                offset: [0, -10]
+            }
+        );
+
+        marker.bindPopup(`
+            <b>Warehouse</b><br>
+            ${warehouse.name}<br>
+            ${warehouse.latitude.toFixed(5)},
+            ${warehouse.longitude.toFixed(5)}
+        `);
+
+    });
+
+
+    assignments.forEach(assignment => {
+
+        const warehouse = warehouses.find(
+            warehouse => warehouse.name === assignment.warehouse
+        );
+
+        const isWarehouse = warehouses.some(
+            warehouse => warehouse.name === assignment.neighborhood
+        );
+
+
+        if (!isWarehouse) {
+
+            const marker = L.marker([
+                assignment.latitude,
+                assignment.longitude
+            ]).addTo(map);
+
+            marker.bindTooltip(
+                assignment.neighborhood,
+                {
+                    permanent: true,
+                    direction: "top",
+                    offset: [0, -10]
+                }
+            );
+
+            marker.bindPopup(`
+                <b>${assignment.neighborhood}</b><br>
+                Warehouse: ${assignment.warehouse}<br>
+                Distance: ${assignment.distance.toFixed(2)} km
+            `);
+
+        }
+
+
+        if (warehouse && !isWarehouse) {
+
+            L.polyline([
+                [
+                    assignment.latitude,
+                    assignment.longitude
+                ],
+                [
+                    warehouse.latitude,
+                    warehouse.longitude
+                ]
+            ]).addTo(map);
+
+        }
+
+    });
+
+</script>
+
+{% endif %}
+
+</body>
+</html>
+
